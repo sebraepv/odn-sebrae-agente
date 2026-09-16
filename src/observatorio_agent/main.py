@@ -3,7 +3,13 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
+
+import truststore
 from dotenv import load_dotenv
+
+# Usa o repositório confiável do Windows, que inclui a CA da inspeção TLS
+# corporativa. Deve ocorrer antes de criar clientes HTTP/OpenAI.
+truststore.inject_into_ssl()
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
@@ -12,7 +18,7 @@ from graph.state import AgentState
 
 from graph.nodes.router import router
 from graph.nodes.data_analyst import sql_node
-from graph.nodes.rag_retrivier import rag_node
+from observatorio_agent.graph.nodes.rag_retriever import rag_node
 from graph.nodes.response import response_node
 
 from langchain_azure_ai.agents.hosting import ResponsesHostServer

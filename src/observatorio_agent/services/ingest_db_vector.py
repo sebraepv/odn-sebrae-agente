@@ -93,14 +93,16 @@ WHERE id = ?;
 
 def get_connection() -> pyodbc.Connection:
     """Abre conexão segura com o Azure SQL Database."""
-    conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=tcp:sc-sandbox-sqlsrv.database.windows.net,1433;"
-        "Database=odn-database;"
-        "Authentication=ActiveDirectoryInteractive;"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-    )
+    # conn_str = (
+    #     "Driver={ODBC Driver 18 for SQL Server};"
+    #     "Server=tcp:sc-sandbox-sqlsrv.database.windows.net,1433;"
+    #     "Database=odn-database;"
+    #     "Authentication=ActiveDirectoryInteractive;"
+    #     "Encrypt=yes;"
+    #     "TrustServerCertificate=no;"
+    # )
+
+    conn_str = os.getenv("SQL_CONNECTION_STRING")
 
     print(conn_str)
 

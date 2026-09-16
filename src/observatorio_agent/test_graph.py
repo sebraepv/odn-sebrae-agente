@@ -21,7 +21,7 @@ async def main():
     await run("Quantas empresas ativas existem em Florianópolis?")
     await run("Quantos MEIs ativos existem em Florianópolis?")
     await run("Qual a quantidade de empresas da regional Sul?")
-    await run("Quais tendências do turismo?")
+    await run("Como evoluiu a abertura de empresas no 2º trimestre de 2026?")
 
 
 if __name__ == "__main__":
