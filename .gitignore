@@ -11,11 +11,19 @@ __pycache__/
 .coverage.*
 htmlcov/
 
+# IDE
+.vscode/
+
+
 # Python virtual environments
 .venv/
 venv/
 env/
 ENV/
+
+# Logs
+*.log
+logs/
 
 # Packaging and build output
 build/
