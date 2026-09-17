@@ -196,20 +196,20 @@ def montar_contexto(trechos: Sequence[Trecho]) -> str:
     )
 
 
-def _texto_da_resposta(resposta: Any) -> str:
-    """Extrai o texto da resposta do modelo, seja ela uma string ou um objeto
-    de mensagem do LangChain.
-    """
-    if isinstance(resposta, str):
-        return resposta
+def _texto_da_resposta(conteudo: Any) -> str:
+    if isinstance(conteudo, str):
+        return conteudo
 
-    try:
-        return resposta.content
-    except AttributeError:
-        raise ValueError(
-            "Resposta inesperada: não é string nem objeto com atributo "
-            "'content'."
-        )
+    if isinstance(conteudo, list):
+        partes = [
+            bloco.get("text", "")
+            for bloco in conteudo
+            if isinstance(bloco, dict) and bloco.get("type") == "text"
+        ]
+        return "\n".join(p for p in partes if p).strip()
+
+    return str(conteudo)
+
 
 async def rag_node(state, model=None) -> dict[str, Any]:
     pergunta = state["messages"][-1].content
@@ -253,11 +253,13 @@ async def rag_node(state, model=None) -> dict[str, Any]:
         )
     )
 
+    texto = _texto_da_resposta(resposta.content)
+
     fontes = "\n".join(f"- {t.referencia}" for t in trechos)
 
     return {
         "retrieved_chunks": recuperados,
         "final_response": (
-            f"{_texto_da_resposta(resposta)}\n\n**Estudos consultados**\n\n{fontes}"
+            f"{texto}\n\n**Estudos consultados**\n\n{fontes}"
         ),
     }

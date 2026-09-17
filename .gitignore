@@ -75,3 +75,7 @@ qdrant_storage/
 *.csv
 *.xlsx
 *.txt
+
+
+# Pasta com os estudos observatorio
+estudos/

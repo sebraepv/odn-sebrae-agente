@@ -18,7 +18,7 @@ from graph.state import AgentState
 
 from graph.nodes.router import router
 from graph.nodes.data_analyst import sql_node
-from observatorio_agent.graph.nodes.rag_retriever import rag_node
+from graph.nodes.rag_retriever import rag_node
 from graph.nodes.response import response_node
 
 from langchain_azure_ai.agents.hosting import ResponsesHostServer

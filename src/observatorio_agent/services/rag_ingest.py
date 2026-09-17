@@ -13,6 +13,7 @@ Uso:
     python rag_ingest.py
     python rag_ingest.py --forcar
     python rag_ingest.py --sem-metadados     # pula a etapa de LLM
+    python rag_ingest.py --manter-orfaos    # não remove do índice estudos ausentes na origem
 """
 
 from __future__ import annotations
@@ -37,6 +38,14 @@ import pyodbc
 import yaml
 from dotenv import load_dotenv
 from openai import OpenAI
+
+from blob_loader import (
+    DocumentoBruto,
+    ReferenciaDocumento,
+    criar_fonte,
+    identificar_removidos,
+    selecionar_pendentes,
+)
 
 _RAIZ = Path(__file__).resolve().parents[1]
 load_dotenv(_RAIZ / ".env")
@@ -191,8 +200,9 @@ def _como_texto(valor: Any) -> str | None:
     return str(valor).strip() or None
 
 
-def ler_documento(path: Path, raiz: Path) -> Documento:
-    markdown = path.read_text(encoding="utf-8")
+def parsear_documento(bruto: DocumentoBruto) -> Documento:
+    """Faz o parsing do frontmatter a partir do conteúdo já obtido."""
+    markdown = bruto.conteudo
     achado = _FRONTMATTER_RE.match(markdown)
 
     if achado:
@@ -216,11 +226,12 @@ def ler_documento(path: Path, raiz: Path) -> Documento:
                 titulo = cabecalho.group(2)
                 break
 
-    titulo = titulo or path.stem.replace("_", " ")
+    nome_base = Path(bruto.chave).stem
+    titulo = titulo or nome_base.replace("_", " ")
 
     ano = metadata.get("ano") or metadata.get("year")
     if ano is None:
-        encontrado = _ANO_RE.search(path.stem) or _ANO_RE.search(str(titulo))
+        encontrado = _ANO_RE.search(nome_base) or _ANO_RE.search(str(titulo))
         ano = encontrado.group(0) if encontrado else None
 
     try:
@@ -228,18 +239,14 @@ def ler_documento(path: Path, raiz: Path) -> Documento:
     except (TypeError, ValueError):
         metadata["ano"] = None
 
-    try:
-        chave = str(path.relative_to(raiz)).replace("\\", "/")
-    except ValueError:
-        chave = path.name
-
     return Documento(
-        chave=chave,
+        chave=bruto.chave,
         titulo=str(titulo),
         markdown=markdown,
         body=body,
         metadata=metadata,
     )
+
 
 
 # ── 1. Chunking recursivo ────────────────────────────────────────────
@@ -441,7 +448,7 @@ def gerar_metadados(
             resposta = cliente.chat.completions.create(
                 model=modelo,
                 messages=mensagens,
-                temperature=0,
+                # temperature=0,
                 response_format={"type": "json_object"},
             )
             return Metadados.from_dict(
@@ -587,7 +594,7 @@ def criar_clientes() -> tuple[OpenAI, str, str]:
     return (
         cliente,
         os.getenv("AZURE_EMBEDDING_DEPLOYMENT", "text-embedding-3-small"),
-        os.getenv("AZURE_AI_MODEL_DEPLOYMENT_NAME", "gpt-5.4-mini"),
+        os.getenv("AZURE_AI_MODEL_DEPLOYMENT_NAME", "gpt-5.5"),
     )
 
 
@@ -639,18 +646,25 @@ def abrir_conexao() -> pyodbc.Connection:
     return pyodbc.connect(conn_str, autocommit=False)
 
 
-def hash_documento_atual(conn: pyodbc.Connection, chave: str) -> str | None:
+def etags_no_banco(conn: pyodbc.Connection) -> dict[str, str | None]:
+    """Mapa documento_chave -> origem_etag de tudo que já foi ingerido."""
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "SELECT conteudo_hash FROM dbo.documentos WHERE documento_chave = ?",
-            chave,
+            "SELECT documento_chave, origem_etag FROM dbo.documentos"
         )
-        linha = cursor.fetchone()
-        return linha[0] if linha else None
+        return {linha[0]: linha[1] for linha in cursor.fetchall()}
     finally:
         cursor.close()
 
+
+def remover_documento(conn: pyodbc.Connection, chave: str) -> None:
+    cursor = conn.cursor()
+    try:
+        cursor.execute("{CALL dbo.sp_remover_documento (?)}", chave)
+        conn.commit()
+    finally:
+        cursor.close()
 
 def _vetor_json(vetor: Sequence[float]) -> str:
     return "[" + ",".join(f"{v:.8f}" for v in vetor) + "]"
@@ -663,11 +677,14 @@ USING (SELECT ? AS documento_chave) AS origem
 WHEN MATCHED THEN UPDATE SET
     titulo = ?, conteudo_markdown = ?, conteudo_hash = ?,
     ano = ?, tema = ?, setor = ?, municipio = ?, regional = ?,
-    fonte = ?, data_referencia = ?, atualizado_em = SYSUTCDATETIME()
+    fonte = ?, data_referencia = ?,
+    origem_uri = ?, origem_etag = ?, origem_tamanho = ?,
+    ingerido_em = SYSUTCDATETIME(), atualizado_em = SYSUTCDATETIME()
 WHEN NOT MATCHED THEN INSERT (
     documento_chave, titulo, conteudo_markdown, conteudo_hash,
-    ano, tema, setor, municipio, regional, fonte, data_referencia
-) VALUES (?,?,?,?,?,?,?,?,?,?,?);
+    ano, tema, setor, municipio, regional, fonte, data_referencia,
+    origem_uri, origem_etag, origem_tamanho, ingerido_em
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,SYSUTCDATETIME());
 """
 
 _SQL_INSERT_CHUNK = f"""
@@ -685,12 +702,12 @@ INSERT INTO dbo.chunks (
 def gravar(
     conn: pyodbc.Connection,
     doc: Documento,
+    bruto: DocumentoBruto,
     chunks: Sequence[Chunk],
     vetores: Sequence[Sequence[float]],
     modelo_embedding: str,
     modelo_llm: str | None,
 ) -> None:
-    """Regrava o documento inteiro numa única transação."""
     meta = doc.metadata
 
     valores_doc = (
@@ -704,6 +721,9 @@ def gravar(
         _como_texto(meta.get("regional")),
         _como_texto(meta.get("fonte")),
         _como_texto(meta.get("data_referencia")),
+        bruto.origem_uri,
+        bruto.etag,
+        bruto.tamanho,
     )
 
     cursor = conn.cursor()
@@ -771,29 +791,20 @@ def gravar(
 # ── Orquestração ─────────────────────────────────────────────────────
 
 
-def ingerir(forcar: bool = False, com_metadados: bool = True) -> dict[str, int]:
-    """Ingestão em duas passagens.
-
-    O IDF precisa ser calculado sobre o corpus inteiro, não por documento.
-    Ajustar o ponderador documento a documento faria termos genéricos do
-    domínio (ex.: "Observatório", "Sebrae") receberem peso alto sempre que
-    o estudo tivesse poucos chunks — exatamente o oposto do pretendido.
-    Por isso a geração de metadados (passagem 1) precede a ponderação e a
-    vetorização (passagem 2).
-    """
-    raiz = Path(os.getenv("ESTUDOS_PATH", _RAIZ / "estudos"))
-
-    if not raiz.exists():
-        raise RuntimeError(f"Diretório de estudos não encontrado: {raiz}")
-
-    arquivos = sorted(raiz.rglob("*.md"))
-
-    if not arquivos:
-        raise RuntimeError(f"Nenhum estudo Markdown em {raiz}")
-
+def ingerir(
+    forcar: bool = False,
+    com_metadados: bool = True,
+    remover_orfaos: bool = True,
+) -> dict[str, int]:
+    fonte = criar_fonte()
     cliente, modelo_emb, modelo_llm = criar_clientes()
 
-    log.info("%d estudo(s) em %s", len(arquivos), raiz)
+    referencias = fonte.listar()
+
+    if not referencias:
+        raise RuntimeError("Nenhum estudo Markdown encontrado na origem.")
+
+    log.info("%d estudo(s) na origem.", len(referencias))
     log.info(
         "Embedding: %s (%d dim) | LLM: %s",
         modelo_emb,
@@ -801,21 +812,46 @@ def ingerir(forcar: bool = False, com_metadados: bool = True) -> dict[str, int]:
         modelo_llm if com_metadados else "desativado",
     )
 
-    resumo = {"documentos": 0, "inalterados": 0, "chunks": 0}
+    resumo = {
+        "documentos": 0,
+        "inalterados": 0,
+        "chunks": 0,
+        "removidos": 0,
+    }
+
     conn = abrir_conexao()
 
     try:
-        # ── Passagem 1: leitura, chunking e metadados ──────────────
-        pendentes: list[tuple[Documento, list[Chunk]]] = []
+        conhecidos = etags_no_banco(conn)
 
-        for arquivo in arquivos:
-            doc = ler_documento(arquivo, raiz)
+        pendentes, inalterados = selecionar_pendentes(
+            referencias, conhecidos, forcar
+        )
 
-            atual = hash_documento_atual(conn, doc.chave)
-            if not forcar and atual == doc.conteudo_hash:
-                log.info("Inalterado: %s", doc.chave)
-                resumo["inalterados"] += 1
-                continue
+        resumo["inalterados"] = len(inalterados)
+
+        for chave in inalterados:
+            log.info("Inalterado: %s", chave)
+
+        # Estudos retirados do container saem do índice, evitando que o
+        # agente recupere trechos de documentos despublicados.
+        if remover_orfaos:
+            orfaos = identificar_removidos(referencias, conhecidos.keys())
+            for chave in orfaos:
+                log.info("Removendo do índice: %s", chave)
+                remover_documento(conn, chave)
+            resumo["removidos"] = len(orfaos)
+
+        if not pendentes:
+            log.info("Nada a processar.")
+            return resumo
+
+        # ── Passagem 1: download, chunking e metadados ─────────────
+        acumulado: list[tuple[Documento, DocumentoBruto, list[Chunk]]] = []
+
+        for referencia in pendentes:
+            bruto = fonte.baixar(referencia)
+            doc = parsear_documento(bruto)
 
             chunks = gerar_chunks(doc)
 
@@ -833,14 +869,13 @@ def ingerir(forcar: bool = False, com_metadados: bool = True) -> dict[str, int]:
                     if posicao % 10 == 0 or posicao == len(chunks):
                         log.info("  metadados %d/%d", posicao, len(chunks))
 
-            pendentes.append((doc, chunks))
+            acumulado.append((doc, bruto, chunks))
 
-        if not pendentes:
-            log.info("Nada a processar.")
+        if not acumulado:
             return resumo
 
-        # ── Ponderação TF-IDF sobre o corpus completo ──────────────
-        todos = [chunk for _, chunks in pendentes for chunk in chunks]
+        # ── TF-IDF sobre o corpus completo ─────────────────────────
+        todos = [c for _, _, chunks in acumulado for c in chunks]
 
         ponderador = PonderadorTfIdf().ajustar(c.metadados for c in todos)
 
@@ -850,11 +885,11 @@ def ingerir(forcar: bool = False, com_metadados: bool = True) -> dict[str, int]:
         log.info(
             "TF-IDF ajustado sobre %d chunks de %d documento(s).",
             len(todos),
-            len(pendentes),
+            len(acumulado),
         )
 
         # ── Passagem 2: embeddings e persistência ──────────────────
-        for doc, chunks in pendentes:
+        for doc, bruto, chunks in acumulado:
             log.info("Vetorizando %s (%d chunks)", doc.chave, len(chunks))
 
             vetores_conteudo = embedar(
@@ -880,6 +915,7 @@ def ingerir(forcar: bool = False, com_metadados: bool = True) -> dict[str, int]:
             gravar(
                 conn,
                 doc,
+                bruto,
                 chunks,
                 finais,
                 modelo_emb,
@@ -903,16 +939,20 @@ if __name__ == "__main__":
                         help="Reprocessa documentos sem alteração.")
     parser.add_argument("--sem-metadados", action="store_true",
                         help="Pula a geração de metadados por LLM.")
+    parser.add_argument("--manter-orfaos", action="store_true",
+                        help="Não remove do índice estudos ausentes na origem.")
     args = parser.parse_args()
 
     resultado = ingerir(
         forcar=args.forcar,
         com_metadados=not args.sem_metadados,
+        remover_orfaos=not args.manter_orfaos
     )
 
     log.info(
-        "Concluído: %d documento(s), %d inalterado(s), %d chunks.",
+        "Concluído: %d documento(s), %d inalterado(s), %d chunks., %d removido(s).",
         resultado["documentos"],
         resultado["inalterados"],
         resultado["chunks"],
+        resultado["removidos"]
     )
