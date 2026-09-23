@@ -9,8 +9,8 @@ setor:
 - Turismo
 - Serviços
 municipio:
-- Florianópolis
 - Balneário Camboriú
+- Florianópolis
 regional: Serra
 fonte: Observatório de Negócios - Sebrae/SC
 data_referencia: '2026'

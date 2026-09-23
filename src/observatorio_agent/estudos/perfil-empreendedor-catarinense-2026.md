@@ -1,5 +1,5 @@
 ---
-title: Perfil do empreendedor catarinense - PNAD Contínua 1º TRI 2026
+title: Perfil do empreendedor catarinense - PNAD Contínua – 1º TRI 2026
 ano: 2026
 tema:
 - empreendedorismo
@@ -13,33 +13,26 @@ fonte: Observatório de Negócios - Sebrae/SC
 data_referencia: 2026-Q1
 ---
 
-# Perfil do empreendedor catarinense - PNAD Contínua 1º TRI 2026
+# Perfil do empreendedor catarinense - PNAD Contínua – 1º TRI 2026
 
 O empreendedor catarinense desempenha papel central na dinâmica econômica do estado, com renda mais elevada que a média nacional, maior nível de formalização e forte presença no setor de serviços. Os dados do IBGE - Pesquisa PNAD Contínua, referente ao 1º trimestre de 2026, apontam um perfil mais experiente, concentrado na faixa dos 40 aos 59 anos, com maior escolaridade e papel relevante na sustentação dos domicílios, inserido em um ambiente econômico diversificado e estruturado.
 
 ## Panorama Geral
 
-* Total de empreendedores: ~1,3 Mi em SC (4,4% do total do país).
-* Composição: 1,10 Mi conta própria (83%) | 227 Mil empregadores (17%).
-* Rendimento médio: R$ 5.151 (Renda catarinense é 30% maior que a nacional).
+* **Total de empreendedores:** ~1,3 Mi (4,4% do total do país)
+    * Conta própria: 1,10 Mi (83%)
+    * Empregadores: 227 Mil (17%)
+* **Rendimento médio:** R$ 5.151 (Renda catarinense é 30% maior que a nacional)
     * Conta própria: R$ 4.366
     * Empregador: R$ 8.969
-* Média de horas trabalhadas por semana: 41,6h (A média catarinense é 3h a mais que a nacional).
+    * *Nota: No 1º Tri/2025 era R$ 5.075.*
+* **Média de horas trabalhadas por semana:** 41,6h (A média catarinense é 3h a mais que a nacional)
+    * *Nota: No 1º Tri/2025 era 41,1h.*
 
 ## Ocupação e setores
 
-### Setores de atuação
-Em SC, cerca de 4 em cada 10 empreendedores atuam em serviços.
+### Ocupação por categoria
 
-| Setor | Percentual |
-| :--- | :--- |
-| Serviços | 44,0% |
-| Comércio | 16,0% |
-| Agropecuária | 14,9% |
-| Construção | 13,8% |
-| Indústria | 11,4% |
-
-### Ocupações
 | Ocupação | Percentual |
 | :--- | :--- |
 | Trabalhadores qualificados, operários e da construção | 21,5% |
@@ -52,14 +45,27 @@ Em SC, cerca de 4 em cada 10 empreendedores atuam em serviços.
 | Ocupações elementares | 4,6% |
 | Apoio administrativo | 0,2% |
 
+### Setores de atuação
+
+Em SC, cerca de 4 em cada 10 empreendedores atuam em serviços.
+
+| Setor | Percentual |
+| :--- | :--- |
+| Serviços | 44,0% |
+| Comércio | 16,0% |
+| Agropecuária | 14,9% |
+| Construção | 13,8% |
+| Indústria | 11,4% |
+
 ## Perfil demográfico
 
 ### Gênero
 * Masculino: 64,9%
 * Feminino: 35,1%
-*(A participação feminina em SC é 1,3 pontos percentuais maior que no Brasil)
+* *Nota: A participação feminina em SC é 1,3 pontos percentuais maior que no Brasil. No 1º Tri/2025 era 35,4%.*
 
 ### Idade
+
 | Faixa Etária | Percentual |
 | :--- | :--- |
 | 14 a 17 anos | 0,5% |
@@ -67,6 +73,7 @@ Em SC, cerca de 4 em cada 10 empreendedores atuam em serviços.
 | 25 a 39 anos | 37,1% |
 | 40 a 59 anos | 44,7% |
 | 60 anos + | 11,0% |
+* *Nota: No Brasil, os empreendedores 60+ são 14,8%. Em SC, no 1º Tri/2025 era 10,8%.*
 
 ### Cor da pele
 * Branca: 82,5%
@@ -74,14 +81,17 @@ Em SC, cerca de 4 em cada 10 empreendedores atuam em serviços.
 * Preta: 3,0%
 
 ### Escolaridade
+
 | Nível | Percentual |
 | :--- | :--- |
 | Fundamental | 26,0% |
 | Médio | 40,0% |
 | Superior | 33,6% |
 | Sem instrução | 0,4% |
+* *Nota: SC possui 6,5 pontos percentuais a mais de empreendedores com ensino superior. No 1º Tri/2025 era 30,1%.*
 
 ### Posição no domicílio
+
 | Posição | Percentual |
 | :--- | :--- |
 | Pessoa responsável pelo domicílio | 53,8% |
@@ -90,11 +100,12 @@ Em SC, cerca de 4 em cada 10 empreendedores atuam em serviços.
 | Pai / mãe / padrasto / madrasta | 1,3% |
 | Genro / Nora | 0,9% |
 | Outros | 1,9% |
+* *Nota: A maioria das pessoas empreendedoras é chefe de família.*
 
 ### Formalização
 * Informal: 49%
 * Formal: 51%
-*(SC tem informalidade 15,4 pontos percentuais menor que a média brasileira)
+* *Nota: SC tem informalidade 15,4 pontos percentuais menor que a média brasileira. No 1º Tri/2025 a informalidade era de 51,2%.*
 
 ## Síntese geral
 
@@ -103,6 +114,6 @@ O empreendedor catarinense é, majoritariamente: Homem branco, entre 40 e 59 ano
 ## Notas e referências
 
 1. A PNAD Contínua considera os trabalhadores por conta própria, inclusive informais. A esse universo somam-se ainda as empresas formais com CNPJ ativo e situação cadastral regular junto à RFB.
-2. A classificação decorre do agrupamento, segundo a PNAD Contínua, de trabalhadores por conta própria e empregadores, adotado neste estudo para representar os empreendedores.
+2. A classificação decorre do agrupamento, segundo a PNAD Contínua, de trabalhadores por conta própria e empreendedores, adotado neste estudo para representar os empreendedores.
 * Fonte: PNAD Contínua – IBGE (1º trimestre de 2026).
-* Conteúdo desenvolvido em Junho de 2026.
+* Conteúdo desenvolvido em Junho • 2026.

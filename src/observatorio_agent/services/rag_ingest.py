@@ -643,7 +643,18 @@ def abrir_conexao() -> pyodbc.Connection:
             "Prefira Authentication=ActiveDirectoryInteractive."
         )
 
-    return pyodbc.connect(conn_str, autocommit=False)
+    for tentativa in range(1, 6):
+        try:
+            return pyodbc.connect(conn_str, autocommit=False)
+        except Exception:  # noqa: BLE001
+            if tentativa == 5:
+                raise
+            log.warning(
+                "Erro ao conectar ao banco (tentativa %d/5). "
+                "Tentando novamente.",
+                tentativa,
+            )
+            time.sleep(2 ** tentativa)
 
 
 def etags_no_banco(conn: pyodbc.Connection) -> dict[str, str | None]:
