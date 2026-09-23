@@ -22,6 +22,7 @@ async def main():
     await run("Quantos MEIs ativos existem em Florianópolis?")
     await run("Qual a quantidade de empresas da regional Sul?")
     await run("Como a copa do mundo pode afetar o consumo de Santa Catarina?")
+    await run("Como são feitas as estrelas do universo?") ## Teste fallback e contexto
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 import unicodedata
 from dataclasses import dataclass
 from typing import Any, Sequence
@@ -106,7 +107,17 @@ def _conectar() -> pyodbc.Connection:
     conn_str = os.getenv("SQL_CONNECTION_STRING")
     if not conn_str:
         raise RuntimeError("SQL_CONNECTION_STRING não definida.")
-    return pyodbc.connect(conn_str, autocommit=True)
+
+    ultima_falha: Exception | None = None
+    for tentativa in range(5):
+        try:
+            return pyodbc.connect(conn_str, autocommit=True)
+        except pyodbc.Error as exc:
+            ultima_falha = exc
+            if tentativa < 4:
+                time.sleep(1)
+
+    raise ultima_falha  # type: ignore[misc]
 
 
 def _embedar(pergunta: str) -> list[float]:
